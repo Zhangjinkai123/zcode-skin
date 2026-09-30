@@ -41,7 +41,7 @@ node zcode-skin.mjs relaunch --yes   # 会结束当前 ZCode 进程，注意保�
 
 | 命令 | 说明 |
 |---|---|
-| `apply <图片>` | 应用壁纸，可选 `--blur 0-30`、`--dim 0-100`（仅暗色主题）、`--brighten 0-100`（仅浅色主题）、`--fit cover\|contain`、`--port` |
+| `apply <图片>` | 应用壁纸，可选 `--blur 0-30`、`--dim 0-100`（仅暗色主题）、`--brighten 0-100` / `--light-dim 0-100`（仅浅色主题，白色提亮 / 黑色压暗）、`--fit cover\|contain`、`--port` |
 | `adjust` | 只调参数不换图，参数同上 |
 | `reset` | 移除注入、清空壁纸配置 |
 | `launch` | 启动带调试端口的 ZCode |
