@@ -1,6 +1,6 @@
 {
   "name": "zcode-skin",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "给 ZCode 桌面端设置自定义背景壁纸：CDP 注入，不改安装文件，支持模糊/压暗/contain 模式、隐藏欢迎页 Logo 水印与刷新自动恢复。",
   "author": { "name": "zjk" },
   "license": "MIT",

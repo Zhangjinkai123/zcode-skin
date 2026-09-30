@@ -166,7 +166,9 @@ html, body { background: transparent !important; }
 #${MARKER}-backdrop[data-on="1"] { display: block; }`);
 
   if (dimAlpha > 0) {
-    parts.push(`#${MARKER}-wallpaper::after {
+    // 压暗只对暗色主题生效：浅色 UI 本就发白，再叠黑层会灰蒙蒙看不清壁纸
+    parts.push(`html.dark #${MARKER}-wallpaper::after,
+html.theme-zai-dark #${MARKER}-wallpaper::after {
   content: ''; position: absolute; inset: 0;
   background: rgb(0 0 0 / ${dimAlpha});
 }`);

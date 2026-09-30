@@ -11,7 +11,7 @@ CLI 是本插件自带的 `zcode-skin.mjs`（下称 `<cli>`），零依赖，要
 
 | 目的 | 命令 |
 |---|---|
-| 设置壁纸 | `node <cli> apply <图片绝对路径> [--blur 0-30] [--dim 0-100] [--brighten 0-100] [--fit cover\|contain]` |
+| 设置壁纸 | `node <cli> apply <图片绝对路径> [--blur 0-30] [--dim 0-100]（仅暗色主题） [--brighten 0-100]（仅浅色主题） [--fit cover\|contain]` |
 | 调整参数（不换图） | `node <cli> adjust --blur 8 --dim 30 --brighten 25` |
 | 还原官方界面 | `node <cli> reset` |
 | 启动带调试端口的 ZCode | `node <cli> launch` |
