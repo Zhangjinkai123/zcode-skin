@@ -8,8 +8,8 @@
 
 1. ZCode 生产构建不带调试端口，`launch`/`apply` 以 `--remote-debugging-port=9222` 启动 ZCode（检测到已有无端口实例时会提示用 `relaunch --yes`，不会擅自杀进程）。
 2. 经 CDP 向每个渲染窗口注入一段幂等 bootstrap 脚本：
-   - `html/body` 背景透明化 + ZCode 的 Tailwind v4 `--color-*` 语义变量改为半透明（亮/暗色两套），壁纸得以透出；
-   - 一层固定定位壁纸（cover / contain 两种取景），可叠加模糊与压暗；
+   - `html/body` 背景透明化 + ZCode 的 `--color-*` 语义变量改为半透明（亮/暗色两套，按 `theme-zai-light/dark` 区分），壁纸得以透出；
+   - 一层固定定位壁纸（cover / contain 两种取景），可叠加模糊与压暗；浅色主题下可改用白色提亮层（`--brighten`）；
    - contain 模式自动垫一层同图高斯模糊背景。
 3. `watch` 守护进程保持 CDP 会话并每 3 秒轮询：页面刷新、新窗口、配置改动都会自动同步主题。
 
@@ -41,7 +41,7 @@ node zcode-skin.mjs relaunch --yes   # 会结束当前 ZCode 进程，注意保�
 
 | 命令 | 说明 |
 |---|---|
-| `apply <图片>` | 应用壁纸，可选 `--blur 0-30`、`--dim 0-100`、`--fit cover\|contain`、`--port` |
+| `apply <图片>` | 应用壁纸，可选 `--blur 0-30`、`--dim 0-100`、`--brighten 0-100`（浅色主题提亮）、`--fit cover\|contain`、`--port` |
 | `adjust` | 只调参数不换图，参数同上 |
 | `reset` | 移除注入、清空壁纸配置 |
 | `launch` | 启动带调试端口的 ZCode |

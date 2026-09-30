@@ -5,7 +5,7 @@
     {
       "name": "zcode-skin",
       "source": "./zcode-skin",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "description": "Custom wallpaper for the ZCode desktop client via CDP injection — no app files touched.",
       "displayName": "ZCode Skin",
       "displayName_i18n": { "zh-CN": "ZCode 壁纸换肤" },

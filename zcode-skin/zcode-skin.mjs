@@ -11,8 +11,8 @@
  * 零 npm 依赖，需要 Node >= 22（内置 WebSocket）。
  *
  * 用法：
- *   node zcode-skin.mjs apply <图片路径> [--blur N] [--dim N] [--fit cover|contain] [--port N]
- *   node zcode-skin.mjs adjust [--blur N] [--dim N] [--fit ...]
+ *   node zcode-skin.mjs apply <图片路径> [--blur N] [--dim N] [--brighten N] [--fit cover|contain] [--port N]
+ *   node zcode-skin.mjs adjust [--blur N] [--dim N] [--brighten N] [--fit ...]
  *   node zcode-skin.mjs reset
  *   node zcode-skin.mjs launch
  *   node zcode-skin.mjs relaunch --yes        # 会先结束当前 ZCode 进程
@@ -59,7 +59,7 @@ function saveConfig(patch) {
   return next;
 }
 
-const DEFAULTS = { port: 9222, blur: 0, dim: 25, fit: "cover" };
+const DEFAULTS = { port: 9222, blur: 0, dim: 25, brighten: 0, fit: "cover" };
 
 // ---------------------------------------------------------------------------
 // CDP 客户端
@@ -140,9 +140,12 @@ export const MARKER = "zcode-skin";
 /**
  * 生成注入 CSS：壁纸层 + 透明化 ZCode 的 Tailwind v4 `--color-*` 语义变量。
  * 亮/暗色分别覆盖，保证应用自身切换深色模式时仍然透出壁纸。
+ * ZCode 的主题类是 html 上的 `theme-zai-light` / `theme-zai-dark`（无 Tailwind `.dark`），
+ * 两者都兼容；`brighten` 只在浅色主题下生效，把压暗换成白色提亮层。
  */
-export function buildCss({ blur = 0, dim = 25, fit = "cover" } = {}) {
+export function buildCss({ blur = 0, dim = 25, brighten = 0, fit = "cover" } = {}) {
   const dimAlpha = clamp(dim, 0, 100) / 100;
+  const brightenAlpha = clamp(brighten, 0, 100) / 100;
   const parts = [];
 
   parts.push(`
@@ -166,6 +169,14 @@ html, body { background: transparent !important; }
     parts.push(`#${MARKER}-wallpaper::after {
   content: ''; position: absolute; inset: 0;
   background: rgb(0 0 0 / ${dimAlpha});
+}`);
+  }
+
+  if (brightenAlpha > 0) {
+    // 浅色主题：用白色提亮层替代压暗（选择器特异性更高，天然覆盖上面的暗层）
+    parts.push(`html:not(.dark):not(.theme-zai-dark) #${MARKER}-wallpaper::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgb(255 255 255 / ${brightenAlpha});
 }`);
   }
 
@@ -200,7 +211,7 @@ function transparencyCss(dimAlpha) {
   --color-input-focused:rgba(255,255,255,0.7);
   ${dimAlpha > 0 ? `--${MARKER}-dim:${dimAlpha};` : ""}
 }
-.dark{
+.dark,.theme-zai-dark{
   --color-background:transparent;
   --color-background-alt:${panelDark};
   --color-background-win-alt:${panelDark};
@@ -797,6 +808,7 @@ async function resolveOpts(opts) {
     port: opts.port ? Number(opts.port) : stored.port ?? DEFAULTS.port,
     blur: opts.blur !== undefined ? clamp(opts.blur, 0, 30) : stored.blur ?? DEFAULTS.blur,
     dim: opts.dim !== undefined ? clamp(opts.dim, 0, 100) : stored.dim ?? DEFAULTS.dim,
+    brighten: opts.brighten !== undefined ? clamp(opts.brighten, 0, 100) : stored.brighten ?? DEFAULTS.brighten,
     fit: ["cover", "contain"].includes(opts.fit) ? opts.fit : stored.fit ?? DEFAULTS.fit,
   };
 }
@@ -823,7 +835,7 @@ async function main() {
   switch (cmd) {
     case "apply": {
       const img = opts._[0];
-      if (!img) { console.error("用法: apply <图片路径> [--blur N] [--dim N] [--fit cover|contain]"); process.exitCode = 1; return; }
+      if (!img) { console.error("用法: apply <图片路径> [--blur N] [--dim N] [--brighten N] [--fit cover|contain]"); process.exitCode = 1; return; }
       const abs = path.resolve(img);
       if (!fs.existsSync(abs)) { console.error(`图片不存在: ${abs}`); process.exitCode = 1; return; }
       const o = await resolveOpts(opts);
@@ -836,7 +848,7 @@ async function main() {
       if (!(await ensureCdp(o))) return;
       const payload = { css: buildCss(o), wallpaperDataUri: toDataUri(dest), fit: o.fit };
       const { injected, total } = await injectAll(o.port, payload);
-      console.log(`已应用壁纸到 ${injected}/${total} 个窗口 (blur=${o.blur}, dim=${o.dim}, fit=${o.fit})`);
+      console.log(`已应用壁纸到 ${injected}/${total} 个窗口 (blur=${o.blur}, dim=${o.dim}, brighten=${o.brighten}, fit=${o.fit})`);
       if (injected > 0 && !readPid()) {
         console.log(`提示: 运行 \`node ${path.basename(self)} watch\` 可让主题在刷新/新窗口后保持`);
       }
@@ -847,7 +859,7 @@ async function main() {
       saveConfig(o);
       if (!(await cdpUp(o.port))) { console.log("配置已保存（ZCode 未运行，下次启动 watch/apply 时生效）"); return; }
       const { injected, total } = await injectAll(o.port, currentPayload());
-      console.log(`已调整: blur=${o.blur}, dim=${o.dim}, fit=${o.fit} (${injected}/${total})`);
+      console.log(`已调整: blur=${o.blur}, dim=${o.dim}, brighten=${o.brighten}, fit=${o.fit} (${injected}/${total})`);
       return;
     }
     case "reset": {
@@ -915,7 +927,7 @@ async function main() {
     }
     case "status": {
       const cfg = { ...DEFAULTS, ...loadConfig() };
-      console.log(`配置: port=${cfg.port} blur=${cfg.blur} dim=${cfg.dim} fit=${cfg.fit}`);
+      console.log(`配置: port=${cfg.port} blur=${cfg.blur} dim=${cfg.dim} brighten=${cfg.brighten} fit=${cfg.fit}`);
       console.log(`壁纸: ${cfg.wallpaperPath ?? "(未设置)"}`);
       console.log(`watch: ${readPid() ? `运行中 (pid ${readPid()})` : "未运行"}`);
       const up = await cdpUp(cfg.port);
@@ -945,8 +957,8 @@ async function main() {
     default:
       console.log(`zcode-skin — ZCode 桌面端壁纸工具
 用法: node zcode-skin.mjs <命令>
-  apply <图片> [--blur N] [--dim N] [--fit cover|contain]   应用壁纸
-  adjust [--blur N] [--dim N] [--fit ...]                    只调参数
+  apply <图片> [--blur N] [--dim N] [--brighten N] [--fit cover|contain]  应用壁纸（brighten 仅浅色主题生效）
+  adjust [--blur N] [--dim N] [--brighten N] [--fit ...]            只调参数
   reset                                                      移除主题
   launch | relaunch --yes | watch [--stop] | autostart [--off]
   repair-launchers                                           快捷方式补调试端口
