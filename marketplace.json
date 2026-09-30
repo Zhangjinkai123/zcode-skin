@@ -1,0 +1,16 @@
+{
+  "name": "dev-zcode-skin-local",
+  "owner": { "name": "zjk" },
+  "plugins": [
+    {
+      "name": "zcode-skin",
+      "source": "./zcode-skin",
+      "version": "0.3.0",
+      "description": "Custom wallpaper for the ZCode desktop client via CDP injection — no app files touched.",
+      "displayName": "ZCode Skin",
+      "displayName_i18n": { "zh-CN": "ZCode 壁纸换肤" },
+      "description_i18n": { "zh-CN": "给 ZCode 桌面端换自定义背景壁纸：CDP 注入不改安装文件，支持模糊/压暗/contain、隐藏欢迎页 Logo 水印与刷新自动恢复。" },
+      "category": "other"
+    }
+  ]
+}
