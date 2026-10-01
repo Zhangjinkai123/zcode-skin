@@ -476,6 +476,20 @@ function readPid() {
   try { return Number(fs.readFileSync(pidFile(), "utf8").trim()); } catch { return null; }
 }
 
+/** 进程是否存活（kill(pid,0) 只探测不发信号；EPERM 也视为活着） */
+function isPidAlive(pid) {
+  try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; }
+}
+
+/** 读取仍存活的 watch pid；pid 文件残留但进程已死时清掉文件并返回 null */
+function readAlivePid() {
+  const pid = readPid();
+  if (pid === null) return null;
+  if (isPidAlive(pid)) return pid;
+  try { fs.rmSync(pidFile(), { force: true }); } catch { /* ignore */ }
+  return null;
+}
+
 async function stopWatch() {
   const pid = readPid();
   if (!pid) { console.log("watch 未在运行"); return; }
@@ -499,7 +513,7 @@ async function startWatchDetached(port) {
   // 由 watch 进程自己写 pid
   for (let i = 0; i < 20; i++) {
     await sleep(250);
-    if (readPid()) { console.log(`watch 已启动 (pid ${readPid()}, port ${port})`); return; }
+    if (readAlivePid()) { console.log(`watch 已启动 (pid ${readPid()}, port ${port})`); return; }
   }
   console.error("watch 启动超时，请查看 " + path.join(dataDir(), "watch.log"));
   process.exitCode = 1;
@@ -861,7 +875,7 @@ async function main() {
       const payload = { css: buildCss(o), wallpaperDataUri: toDataUri(dest), fit: o.fit };
       const { injected, total } = await injectAll(o.port, payload);
       console.log(`已应用壁纸到 ${injected}/${total} 个窗口 (blur=${o.blur}, dim=${o.dim}, brighten=${o.brighten}, lightDim=${o.lightDim}, fit=${o.fit})`);
-      if (injected > 0 && !readPid()) {
+      if (injected > 0 && !readAlivePid()) {
         console.log(`提示: 运行 \`node ${path.basename(self)} watch\` 可让主题在刷新/新窗口后保持`);
       }
       return;
@@ -920,7 +934,8 @@ async function main() {
     }
     case "watch": {
       if (opts.stop) { await stopWatch(); return; }
-      if (readPid()) { console.log(`watch 已在运行 (pid ${readPid()})`); return; }
+      const runningPid = readAlivePid();
+      if (runningPid) { console.log(`watch 已在运行 (pid ${runningPid})`); return; }
       if (opts.detach) { await startWatchDetached((await resolveOpts(opts)).port); return; }
       const o = await resolveOpts(opts);
       fs.mkdirSync(dataDir(), { recursive: true });
@@ -941,7 +956,12 @@ async function main() {
       const cfg = { ...DEFAULTS, ...loadConfig() };
       console.log(`配置: port=${cfg.port} blur=${cfg.blur} dim=${cfg.dim} brighten=${cfg.brighten} lightDim=${cfg.lightDim} fit=${cfg.fit}`);
       console.log(`壁纸: ${cfg.wallpaperPath ?? "(未设置)"}`);
-      console.log(`watch: ${readPid() ? `运行中 (pid ${readPid()})` : "未运行"}`);
+      const rawPid = readPid();
+      const watchPid = readAlivePid(); // 顺带清理残留 pid 文件
+      if (rawPid !== null && watchPid === null) {
+        console.log("watch: 残留 pid 文件已清理（进程早已退出）——运行 `watch --detach` 重新拉起");
+      }
+      console.log(`watch: ${watchPid ? `运行中 (pid ${watchPid})` : "未运行"}`);
       const up = await cdpUp(cfg.port);
       if (up) {
         console.log(`CDP: 在线 (port ${cfg.port})`);
